@@ -43,4 +43,5 @@ module "ec2" {
   windows_name         = var.windows_name
   k8s_version          = var.k8s_version
   k8s_build            = var.k8s_build
+  vpc_id               = module.vpc.vpc_id
 }

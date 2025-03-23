@@ -1,0 +1,59 @@
+name: Static Analysis Tests
+
+on:
+  push:
+    branches: [ lab-tf ]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: [terraform, python]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        if: matrix.task == 'python'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Terraform
+        if: matrix.task == 'terraform'
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
+
+      # ----------------------
+      # Terraform - Checkov
+
+      - name: Install Checkov
+        if: matrix.task == 'terraform'
+        run: |
+          pip install checkov
+
+      - name: Run Checkov (Terraform)
+        if: matrix.task == 'terraform'
+        run: |
+          checkov -d . --quiet
+
+      # ----------------------
+      # Python Static Tests
+
+      - name: Install Python static analysis tools
+        if: matrix.task == 'python'
+        run: |
+          pip install bandit flake8 safety -r app/requirements.txt
+
+      - name: Run Bandit (security scan)
+        if: matrix.task == 'python'
+        run: |
+          bandit -r app/ -ll
+
+      - name: Run Safety (dependency scan)
+        if: matrix.task == 'python'
+        run: |
+          safety check --full-report

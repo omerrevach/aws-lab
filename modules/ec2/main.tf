@@ -3,6 +3,7 @@ resource "aws_instance" "linux_ec2" {
   instance_type = var.instance_type
   subnet_id = var.private_subnets[0]
   iam_instance_profile = var.iam_instance_profile // To connect to an EC2 instance using SSM
+  vpc_security_group_ids = [aws_security_group.linux_ec2_sg.id]
 
   user_data = <<-EOF
               #!/bin/bash
@@ -16,6 +17,18 @@ resource "aws_instance" "linux_ec2" {
   
   tags = {
     Name = var.linux_name
+  }
+}
+
+resource "aws_security_group" "linux_ec2_sg" {
+  name = "linux-ec2-sg"
+  vpc_id = var.vpc_id
+
+  egress {
+    from_port = 443
+    to_port = 443
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
