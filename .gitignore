@@ -27,6 +27,8 @@ instance/
 
 
 checklist
+foler_structure.txt
+
 
 .terraform/
 terraform
