@@ -25,14 +25,14 @@ module "vpc" {
 }
 
 module "iam" {
-  source = "./modules/iam"
+  source = "../modules/iam"
 
   iam_role_name             = var.iam_role_name
   iam_instance_profile_name = var.iam_instance_profile_name
 }
 
 module "ec2" {
-  source = "./modules/ec2"
+  source = "../modules/ec2"
 
   linux_ami            = var.linux_ami
   windows_ami          = var.windows_ami
