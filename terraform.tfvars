@@ -1,8 +1,7 @@
 // VPC
 vpc_name           = "aws-lab-vpc"
-vpc = {
-  cidr = "10.0.0.0/16"
-}
+vpc_cidr = "10.0.0.0/16"
+
 
 availability_zones = ["eu-north-1a", "eu-north-1b"]
 
@@ -18,8 +17,6 @@ public_subnets = [
 
 enable_nat_gateway   = true
 single_nat_gateway   = true
-
-cluster_name = "aws-lab"
 
 // IAM / SSM
 iam_role_name             = "ec2-ssm-role"
