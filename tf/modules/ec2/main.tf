@@ -41,7 +41,7 @@ resource "aws_instance" "linux_ec2" {
 resource "aws_security_group" "linux_ec2_sg" {
   name   = "linux-ec2-sg"
   vpc_id = var.vpc_id
-  # Allow all outbound traffic
+  # allow all outbound traffic
   egress {
     from_port   = 0
     to_port     = 0

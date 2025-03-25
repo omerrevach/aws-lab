@@ -9,4 +9,4 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 5000  # your app runs on 5000
+      targetPort: 5000
