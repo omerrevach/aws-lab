@@ -12,7 +12,6 @@ phases:
     commands:
       - echo installing tools
       - apt update && apt install -y git
-      # Docker should already be available in the image you're using
       - docker --version
   pre_build:
     commands:
@@ -20,6 +19,7 @@ phases:
       - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
       - export IMAGE_TAG=$CODEBUILD_BUILD_NUMBER
       - echo Image tag is $IMAGE_TAG
+      - ls -la # List files 
   build:
     commands:
       - echo building image
@@ -30,8 +30,9 @@ phases:
       - echo CD executing
       - git config --global user.name "CI Bot"
       - git config --global user.email "ci@lab.com"
-      - git clone --branch $BRANCH_NAME https://$GITHUB_TOKEN@github.com/omerrevach/aws-lab.git output
+      - git clone https://${GITHUB_TOKEN}@github.com/omerrevach/aws-lab.git output
       - cd output
+      - git checkout $BRANCH_NAME
       - echo Patching values.yaml...
       - sed -i 's/^\([[:space:]]*tag:\).*/\1 "'"$IMAGE_TAG"'"/' helm/values.yaml
       - git add $HELM_DIR/values.yaml
