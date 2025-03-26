@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app
+  namespace: default
+  labels:
+    app: flask-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: flask-app
+    spec:
+      serviceAccountName: flask-app-sa  # IRSA for S3 access
+      containers:
+        - name: flask-app
+          image: rebachi/aws-lab:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: S3_BUCKET
+              value: stockpnl-data
+            - name: AWS_REGION
+              value: eu-north-1
