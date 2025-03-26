@@ -1,7 +1,7 @@
 replicaCount: 1
 image:
   repository: rebachi/aws-lab
-  tag: "1"
+  tag: "8"
   pullPolicy: Always
 service:
   name: flask-app
