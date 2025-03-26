@@ -45,3 +45,27 @@ resource "aws_iam_role" "codepipeline_role" {
     }]
   })
 }
+
+resource "aws_iam_policy" "codepipeline_policy" {
+  name   = "lab-codepipeline-policy"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = ["logs:*", "codepipeline:*", "s3:*", "codestar-connections:UseConnection"],
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow",
+        Action   = ["secretsmanager:GetSecretValue"],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "codepipeline_attach" {
+  role       = aws_iam_role.codepipeline_role.name
+  policy_arn = aws_iam_policy.codepipeline_policy.arn
+}
