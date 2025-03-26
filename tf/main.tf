@@ -229,6 +229,12 @@ resource "time_sleep" "wait_for_nginx" {
 
 data "aws_caller_identity" "current" {}
 
+data "kubernetes_namespace" "ingress" {
+  metadata {
+    name = "ingress"
+  }
+}
+
 resource "kubernetes_ingress_v1" "nginx_alb" {
   metadata {
     name      = "nginx-ingress"
@@ -266,6 +272,10 @@ resource "kubernetes_ingress_v1" "nginx_alb" {
       }
     }
   }
+  depends_on = [
+    helm_release.ingress_nginx
+  ]
+
 }
 
 data "kubernetes_ingress_v1" "alb_ingress" {
@@ -277,14 +287,39 @@ data "kubernetes_ingress_v1" "alb_ingress" {
   depends_on = [kubernetes_ingress_v1.nginx_alb]
 }
 
+resource "null_resource" "wait_for_ingress_hostname" {
+  depends_on = [kubernetes_ingress_v1.nginx_alb]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      echo "Waiting for ALB ingress hostname..."
+      for i in {1..20}; do
+        host=$(kubectl get ingress nginx-ingress -n ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+        if [ ! -z "$host" ]; then
+          echo "ALB hostname ready: $host"
+          exit 0
+        fi
+        echo "Still waiting..."
+        sleep 10
+      done
+      echo "Timeout waiting for ALB hostname"
+      exit 1
+    EOT
+    interpreter = ["bash", "-c"]
+  }
+}
+
+
 resource "aws_route53_record" "stockpnl_com" {
+  depends_on = [null_resource.wait_for_ingress_hostname]
+
   zone_id = "Z022564630P941WV72XMM"
   name    = "stockpnl.com"
   type    = "A"
 
   alias {
     name                   = data.kubernetes_ingress_v1.alb_ingress.status[0].load_balancer[0].ingress[0].hostname
-    zone_id                = "Z23TAZ6LKFMNIO" # Always the hosted zone ID for ALB in eu-north-1
+    zone_id                = "Z23TAZ6LKFMNIO"
     evaluate_target_health = false
   }
 }
