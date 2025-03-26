@@ -1,16 +1,24 @@
 variable "dockerhub_username" {
-  type = string
+  type        = string
+  description = "Docker Hub username"
 }
 
 variable "dockerhub_password" {
-  type = string
+  type        = string
+  description = "Stored in Secrets Manager"
 }
 
-variable "github_repo" {
-  type = string
-  description = "Format: owner/repo"
+variable "github_token" {
+  type        = string
+  description = "GitHub pat token for source access"
 }
 
-variable "github_oauth_token" {
-  type = string
+variable "pipeline_artifact_bucket" {
+  type        = string
+  description = "S3 bucket name for CodePipeline artifacts"
+}
+
+variable "aws_region" {
+  type    = string
+  default = "eu-north-1"
 }
