@@ -33,7 +33,7 @@ phases:
       - echo CD executing
       - git config --global user.name "CI Bot"
       - git config --global user.email "ci@lab.com"
-      - git clone --branch $BRANCH_NAME https://github.com/YOUR_USERNAME/aws-lab.git output
+      - git clone --branch $BRANCH_NAME https://$GITHUB_TOKEN@github.com/omerrevach/aws-lab.git output
       - cd output
       - echo Patching values.yaml...
       - sed -i 's/^\([[:space:]]*tag:\).*/\1 "'"$IMAGE_TAG"'"/' helm/values.yaml
