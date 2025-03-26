@@ -10,7 +10,7 @@ resource "aws_codebuild_project" "lab_app_build" {
     compute_type = "BUILD_GENERAL1_SMALL"
     image = "aws/codebuild/amazonlinux2-x86_64-standard:4.0"  # This image has Docker pre-installed
     type = "LINUX_CONTAINER"
-    privileged_mode = true
+    privileged_mode = true  # Required for Docker commands
     
     environment_variable {
       name = "DOCKERHUB_USERNAME"
@@ -31,6 +31,12 @@ resource "aws_codebuild_project" "lab_app_build" {
     environment_variable {
       name = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
+    }
+    
+    environment_variable {
+      name = "GITHUB_TOKEN"
+      value = data.aws_secretsmanager_secret_version.github_token.secret_string
+      type = "PLAINTEXT"
     }
   }
   
