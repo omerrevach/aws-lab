@@ -1,36 +1,45 @@
 version: 0.2
 
+env:
+  variables:
+    IMAGE_NAME: rebachi/aws-lab
+    HELM_DIR: helm
+    BRANCH_NAME: lab-tf-pipeline
+    COMMIT_MSG: "CI: Update image tag through CodePipeline"
+
 phases:
   install:
     runtime-versions:
       docker: 20
     commands:
-      - echo Installing Git...
-      - apt-get update && apt-get install -y git
+      - echo installing tools
+      - apt update && apt install -y git
+
   pre_build:
     commands:
-      - IMAGE_TAG=$CODEBUILD_BUILD_NUMBER
-      - echo "Build number: $IMAGE_TAG"
+      - echo logging to dockerhub
       - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-      - git config --global user.email "pipeline@aws.com"
-      - git config --global user.name "AWS CodePipeline"
-      - echo Cloning main branch...
-      - git clone --branch main https://github.com/${APP_REPO}.git app-main
-      - cd app-main
+      - export IMAGE_TAG=$CODEBUILD_BUILD_NUMBER
+      - echo Image tag is $IMAGE_TAG
+
   build:
     commands:
-      - echo Building and pushing Docker image...
-      - docker build -t $DOCKERHUB_USERNAME/aws-lab:$IMAGE_TAG .
-      - docker push $DOCKERHUB_USERNAME/aws-lab:$IMAGE_TAG
+      - echo building image
+      - docker build -t $IMAGE_NAME:$IMAGE_TAG ./app
+      - docker push $IMAGE_NAME:$IMAGE_TAG
+
   post_build:
     commands:
-      - echo Cloning deploy branch...
-      - cd ..
-      - git clone --branch deploy https://$GITHUB_TOKEN@github.com/${APP_REPO}.git app-deploy
-      - cd app-deploy
+      - echo CD executing
+      - git config --global user.name "CI Bot"
+      - git config --global user.email "ci@lab.com"
+      - git clone --branch $BRANCH_NAME https://github.com/YOUR_USERNAME/aws-lab.git output
+      - cd output
+      - echo Patching values.yaml...
       - sed -i 's/^\([[:space:]]*tag:\).*/\1 "'"$IMAGE_TAG"'"/' helm/values.yaml
-      - git add helm/values.yaml
-      - git commit -m "Update image tag to $IMAGE_TAG"
-      - git push origin deploy
+      - git add $HELM_DIR/values.yaml
+      - git commit -m "$COMMIT_MSG"
+      - git push origin $BRANCH_NAME
+
 artifacts:
   files: []
