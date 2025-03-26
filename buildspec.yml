@@ -1,33 +1,30 @@
 version: 0.2
-
 env:
   variables:
     IMAGE_NAME: rebachi/aws-lab
     HELM_DIR: helm
     BRANCH_NAME: lab-tf-pipeline
     COMMIT_MSG: "CI: Update image tag through CodePipeline"
-
 phases:
   install:
     runtime-versions:
-      docker: 20
+      nodejs: 18
     commands:
       - echo installing tools
       - apt update && apt install -y git
-
+      # Docker should already be available in the image you're using
+      - docker --version
   pre_build:
     commands:
       - echo logging to dockerhub
       - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
       - export IMAGE_TAG=$CODEBUILD_BUILD_NUMBER
       - echo Image tag is $IMAGE_TAG
-
   build:
     commands:
       - echo building image
       - docker build -t $IMAGE_NAME:$IMAGE_TAG ./app
       - docker push $IMAGE_NAME:$IMAGE_TAG
-
   post_build:
     commands:
       - echo CD executing
@@ -40,6 +37,5 @@ phases:
       - git add $HELM_DIR/values.yaml
       - git commit -m "$COMMIT_MSG"
       - git push origin $BRANCH_NAME
-
 artifacts:
   files: []
