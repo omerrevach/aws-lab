@@ -1,3 +1,12 @@
+resource "aws_s3_bucket" "pipeline_artifacts" {
+  bucket = var.pipeline_artifact_bucket
+
+  tags = {
+    Name        = "pipeline-artifacts"
+    Environment = "prod"
+  }
+}
+
 resource "aws_codepipeline" "lab_pipeline" {
   name     = "lab-pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
@@ -13,16 +22,16 @@ resource "aws_codepipeline" "lab_pipeline" {
     action {
       name             = "GitHub_Source"
       category         = "Source"
-      owner            = "ThirdParty"
-      provider         = "GitHub"
+      owner            = "AWS"
+      provider         = "CodeStarSourceConnection"
       version          = "1"
       output_artifacts = ["source_output"]
 
       configuration = {
-        Owner      = "YOUR_USERNAME"
-        Repo       = "aws-lab"
-        Branch     = "lab-pipeline"
-        OAuthToken = var.github_token
+        ConnectionArn    = data.aws_codestarconnections_connection.github.arn
+        FullRepositoryId = "omerrevach/aws-lab"
+        BranchName       = "lab-pipeline"
+        DetectChanges    = "true"
       }
     }
   }
@@ -31,14 +40,13 @@ resource "aws_codepipeline" "lab_pipeline" {
     name = "Build"
 
     action {
-      name             = "DockerBuild"
+      name             = "BuildAction"
       category         = "Build"
       owner            = "AWS"
       provider         = "CodeBuild"
+      version          = "1"
       input_artifacts  = ["source_output"]
       output_artifacts = []
-      version          = "1"
-
       configuration = {
         ProjectName = aws_codebuild_project.lab_app_build.name
       }

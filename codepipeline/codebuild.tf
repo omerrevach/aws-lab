@@ -18,7 +18,7 @@ resource "aws_codebuild_project" "lab_app_build" {
 
     environment_variable {
       name  = "DOCKERHUB_PASSWORD"
-      value = var.dockerhub_password
+      value = data.aws_secretsmanager_secret.dockerhub_password.arn
       type  = "SECRETS_MANAGER"
     }
 
@@ -35,7 +35,7 @@ resource "aws_codebuild_project" "lab_app_build" {
 
   source {
     type            = "GITHUB"
-    location        = "https://github.com/YOUR_USERNAME/aws-lab"
+    location        = "https://github.com/omerrevach/aws-lab"
     git_clone_depth = 1
     buildspec       = "buildspec.yml"
   }
