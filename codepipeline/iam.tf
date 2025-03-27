@@ -36,12 +36,17 @@ resource "aws_iam_policy" "codebuild_policy" {
       },
       {
         Effect = "Allow",
-        Action = ["secretsmanager:GetSecretValue"],
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ],
         Resource = "*"
       },
       {
         Effect = "Allow",
-        Action = ["codebuild:*"],
+        Action = [
+          "codebuild:*",
+          "eks:DescribeCluster"
+        ],
         Resource = "*"
       }
     ]
@@ -49,7 +54,7 @@ resource "aws_iam_policy" "codebuild_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "codebuild_attach" {
-  role = aws_iam_role.codebuild_role.name
+  role       = aws_iam_role.codebuild_role.name
   policy_arn = aws_iam_policy.codebuild_policy.arn
 }
 
@@ -111,6 +116,6 @@ resource "aws_iam_policy" "codepipeline_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "codepipeline_attach" {
-  role = aws_iam_role.codepipeline_role.name
+  role       = aws_iam_role.codepipeline_role.name
   policy_arn = aws_iam_policy.codepipeline_policy.arn
 }
