@@ -10,12 +10,24 @@ spec:
   selector:
     matchLabels:
       app: flask-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
         app: flask-app
     spec:
-      serviceAccountName: flask-app-sa  # IRSA for S3 access
+      serviceAccountName: flask-app-sa # for IRSA to s3
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: flask-app
       containers:
         - name: flask-app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -24,6 +36,25 @@ spec:
             - containerPort: {{ .Values.service.targetPort }}
           env:
             - name: S3_BUCKET
-              value: stockpnl-data
+              value: {{ .Values.env.S3_BUCKET }}
             - name: AWS_REGION
-              value: eu-north-1
+              value: {{ .Values.env.AWS_REGION }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 20
