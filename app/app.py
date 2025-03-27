@@ -5,17 +5,14 @@ import os
 import random
 import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Get environment variables with defaults
 bucket_name = os.getenv("S3_BUCKET", "stockpnl-data")
 region_name = os.getenv("AWS_REGION", "eu-north-1")
 
-# Initialize S3 client with proper configuration
 s3 = boto3.client(
     's3',
     region_name=region_name,
@@ -57,7 +54,7 @@ def home():
             ExpiresIn=300  # 5 minutes
         )
         
-        # Log the URL for debugging (truncated)
+        # Log URL for debugging
         logger.info(f"Generated presigned URL (truncated): {image_url[:50]}...")
         
         return render_template("index.html", image_url=image_url)
