@@ -232,3 +232,6 @@ dockerhub_username = "rebachi"
 pipeline_artifact_bucket = "commit-pipeline-artifact-bucket-omeriko"
 ```
 * pipeline_artifact_bucket: The S3 bucket used to store the pipeline artifacts.
+
+
+![WebAppPic](web_app.png)
