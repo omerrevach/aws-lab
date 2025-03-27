@@ -1,4 +1,3 @@
-#  IAM role for app
 resource "aws_iam_role" "flask_app_role" {
   name = "flask-app-s3-role"
   
@@ -47,13 +46,11 @@ resource "aws_iam_policy" "flask_app_s3_policy" {
   })
 }
 
-# Attach policy to the role
 resource "aws_iam_role_policy_attachment" "flask_app_s3_attachment" {
   role       = aws_iam_role.flask_app_role.name
   policy_arn = aws_iam_policy.flask_app_s3_policy.arn
 }
 
-# Create the Kubernetes service account
 resource "kubernetes_service_account" "flask_app_sa" {
   depends_on = [module.eks, aws_iam_role.flask_app_role]
   
