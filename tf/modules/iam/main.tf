@@ -23,7 +23,7 @@ resource "aws_iam_role_policy_attachment" "eks_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
-# Custom policy for EC2 instance to access EKS cluster
+# policy for EC2 instance to access EKS cluster
 resource "aws_iam_policy" "eks_access" {
   name        = "eks-ec2-cluster-access-policy"
   description = "Policy for EC2 instance to interact with EKS cluster"
@@ -72,9 +72,8 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-#############################################
-# IAM Role for EKS Fargate Pod Execution
-#############################################
+# IAM Role for EKS Fargate Pod Execution no Need
+
 
 resource "aws_iam_role" "eks_fargate_pod_execution_role" {
   name = "eks-fargate-pod-execution-role"
@@ -104,7 +103,7 @@ resource "aws_iam_role_policy_attachment" "fargate_ecr" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# Custom policy for EKS Fargate pods to access S3 bucket
+# policy for EKS Fargate pods to access S3 bucket
 resource "aws_iam_policy" "fargate_s3_access" {
   name        = "eks-fargate-s3-access-policy"
   description = "Allows EKS Fargate pods to ListBucket and GetObject from S3"
