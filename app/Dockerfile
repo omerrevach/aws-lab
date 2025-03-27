@@ -10,7 +10,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
-# Add this line to copy the templates directory
 COPY templates/ templates/
 
 EXPOSE 5000
