@@ -103,29 +103,4 @@ resource "aws_iam_role_policy_attachment" "fargate_ecr" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# policy for EKS Fargate pods to access S3 bucket
-resource "aws_iam_policy" "fargate_s3_access" {
-  name        = "eks-fargate-s3-access-policy"
-  description = "Allows EKS Fargate pods to ListBucket and GetObject from S3"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = ["s3:ListBucket"]
-        Resource = [var.s3_bucket_arn]
-      },
-      {
-        Effect = "Allow"
-        Action = ["s3:GetObject"]
-        Resource = ["${var.s3_bucket_arn}/*"]
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "fargate_s3_access_attachment" {
-  role       = aws_iam_role.eks_fargate_pod_execution_role.name
-  policy_arn = aws_iam_policy.fargate_s3_access.arn
-}
 
