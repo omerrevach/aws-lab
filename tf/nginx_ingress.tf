@@ -8,7 +8,7 @@ resource "helm_release" "ingress_nginx" {
 
   set {
     name  = "controller.service.type"
-    value = "ClusterIP"  # Keep as ClusterIP as per requirement
+    value = "ClusterIP"
   }
 
   # Add proper tolerations for Fargate
@@ -32,13 +32,13 @@ resource "helm_release" "ingress_nginx" {
     value = "NoSchedule"
   }
 
-  # Add nodeSelector for Fargate
+  # nodeSelector for Fargate
   set {
     name  = "controller.nodeSelector.eks\\.amazonaws\\.com/compute-type"
     value = "fargate"
   }
 
-  # Configure admission webhook to work with Fargate
+  # admission webhook to work with Fargate
   set {
     name  = "controller.admissionWebhooks.patch.tolerations[0].key"
     value = "eks.amazonaws.com/compute-type"
@@ -59,13 +59,13 @@ resource "helm_release" "ingress_nginx" {
     value = "NoSchedule"
   }
 
-  # Configure admission webhook with nodeSelector
+  # admission webhook with nodeSelector
   set {
     name  = "controller.admissionWebhooks.patch.nodeSelector.eks\\.amazonaws\\.com/compute-type"
     value = "fargate"
   }
   
-  # Add resources limits for Fargate
+  # resources limits for Fargate
   set {
     name  = "controller.resources.requests.cpu"
     value = "100m"
