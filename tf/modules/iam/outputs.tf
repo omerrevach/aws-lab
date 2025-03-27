@@ -11,7 +11,6 @@ output "eks_fargate_pod_execution_role_arn" {
 }
 
 output "ec2_ssm_role_arn" {
-  description = "IAM role ARN for EC2 SSM role"
   value       = aws_iam_role.ec2_ssm_role.arn
 }
 

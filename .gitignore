@@ -1,8 +1,6 @@
 terraform.tfvars
-idea
-secretsmanager.txt
-foler_structure.txt
 checklist
+application.yaml
 
 # Python-related
 __pycache__/
