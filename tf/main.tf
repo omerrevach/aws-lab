@@ -62,7 +62,8 @@ module "eks_blueprints_addons" {
   oidc_provider_arn = module.eks.oidc_provider_arn
 
   enable_ingress_nginx                = false
-  enable_argocd                       = true
+
+  enable_argocd                       = false
 
   enable_aws_load_balancer_controller    = true
   aws_load_balancer_controller = {
@@ -82,6 +83,157 @@ module "eks_blueprints_addons" {
 
   depends_on = [module.eks]
 }
+
+
+resource "kubernetes_namespace" "argocd" {
+  metadata {
+    name = "argocd"
+  }
+}
+
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  namespace  = kubernetes_namespace.argocd.metadata[0].name
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  version    = "5.51.6"
+
+  # Expose the server as a ClusterIP service (Ingress will route traffic)
+  set {
+    name  = "server.service.type"
+    value = "ClusterIP"
+  }
+
+  # Enable Ingress for ArgoCD
+  set {
+    name  = "server.ingress.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "server.ingress.ingressClassName"
+    value = "alb"
+  }
+
+  # Hostname for ALB to route to (this is your public domain)
+  set {
+    name  = "server.ingress.hostname"
+    value = "argocd.stockpnl.com"
+  }
+
+  # Set the ingress path to "/" and use Prefix type so that all subpaths are served
+  set {
+    name  = "server.ingress.path"
+    value = "/"
+  }
+
+  set {
+    name  = "server.ingress.pathType"
+    value = "Prefix"
+  }
+
+  # ALB Ingress annotations
+  set {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/scheme"
+    value = "internet-facing"
+  }
+
+  set {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/target-type"
+    value = "ip"
+  }
+
+  set {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/listen-ports"
+    value = "[{\"HTTPS\":443}]"
+  }
+
+  set {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/backend-protocol"
+    value = "HTTP"
+  }
+
+  set {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/backend-protocol-version"
+    value = "HTTP1"
+  }
+
+  set {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/ssl-redirect"
+    value = "443"
+  }
+
+  # Set the ACM certificate ARN (using sensitive interpolation)
+  set_sensitive {
+    name  = "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/certificate-arn"
+    value = "arn:aws:acm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:certificate/${var.acm_cert_id}"
+  }
+
+  # Configure the ArgoCD URL (this tells ArgoCD its public URL)
+  set {
+    name  = "configs.cm.url"
+    value = "https://argocd.stockpnl.com"
+  }
+
+  # Disable internal HTTPS redirect in ArgoCD (the ALB terminates SSL)
+  set {
+    name  = "configs.params.server\\.insecure"
+    value = "true"
+  }
+
+  depends_on = [module.eks_blueprints_addons]
+}
+
+
+
+
+data "kubernetes_ingress_v1" "argocd" {
+  metadata {
+    name      = "argocd-server"
+    namespace = "argocd"
+  }
+
+  depends_on = [helm_release.argocd]
+}
+
+resource "null_resource" "wait_for_argocd_ingress" {
+  depends_on = [helm_release.argocd]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      for i in {1..30}; do
+        host=$(kubectl get ingress argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+        if [ ! -z "$host" ]; then
+          echo "ALB Hostname: $host"
+          exit 0
+        fi
+        echo "Waiting for ArgoCD ALB hostname..."
+        sleep 10
+      done
+      echo "Timeout waiting for ArgoCD ALB hostname"
+      exit 1
+    EOT
+    interpreter = ["bash", "-c"]
+  }
+}
+
+resource "aws_route53_record" "argocd_dns" {
+  depends_on = [null_resource.wait_for_argocd_ingress]
+
+  zone_id = "Z022564630P941WV72XMM"
+  name    = "argocd.stockpnl.com"
+  type    = "A"
+
+  alias {
+    name                   = data.kubernetes_ingress_v1.argocd.status[0].load_balancer[0].ingress[0].hostname
+    zone_id                = "Z23TAZ6LKFMNIO"
+    evaluate_target_health = false
+  }
+}
+
+
+
+
 
 # Helm for Nginx Ingress
 resource "helm_release" "ingress_nginx" {
@@ -220,6 +372,12 @@ resource "helm_release" "ingress_nginx" {
     name  = "controller.admissionWebhooks.patch.podAnnotations.eks\\.amazonaws\\.com/fargate-profile"
     value = "default"
   }
+
+  set {
+    name  = "controller.extraArgs.enable-ssl-passthrough"
+    value = ""
+  }
+
 }
 
 resource "time_sleep" "wait_for_nginx" {
@@ -287,19 +445,18 @@ data "kubernetes_ingress_v1" "alb_ingress" {
   depends_on = [kubernetes_ingress_v1.nginx_alb]
 }
 
-resource "null_resource" "wait_for_ingress_hostname" {
+resource "null_resource" "wait_for_ingress_ready" {
   depends_on = [kubernetes_ingress_v1.nginx_alb]
 
   provisioner "local-exec" {
     command = <<EOT
-      echo "Waiting for ALB ingress hostname..."
-      for i in {1..20}; do
-        host=$(kubectl get ingress nginx-ingress -n ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-        if [ ! -z "$host" ]; then
-          echo "ALB hostname ready: $host"
+      for i in {1..30}; do
+        HOST=$(kubectl get ingress nginx-ingress -n ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+        if [ "$HOST" != "" ]; then
+          echo "ALB ready: $HOST"
           exit 0
         fi
-        echo "Still waiting..."
+        echo "Waiting for ALB..."
         sleep 10
       done
       echo "Timeout waiting for ALB hostname"
@@ -309,20 +466,21 @@ resource "null_resource" "wait_for_ingress_hostname" {
   }
 }
 
-
 resource "aws_route53_record" "stockpnl_com" {
-  depends_on = [null_resource.wait_for_ingress_hostname]
+  depends_on = [null_resource.wait_for_ingress_ready]
 
   zone_id = "Z022564630P941WV72XMM"
   name    = "stockpnl.com"
   type    = "A"
 
   alias {
-    name                   = data.kubernetes_ingress_v1.alb_ingress.status[0].load_balancer[0].ingress[0].hostname
+    name                   = kubernetes_ingress_v1.nginx_alb.status[0].load_balancer[0].ingress[0].hostname
     zone_id                = "Z23TAZ6LKFMNIO"
     evaluate_target_health = false
   }
 }
+
+
 
 
 
@@ -414,3 +572,55 @@ resource "kubernetes_service_account" "flask_app_sa" {
   }
 }
 
+
+
+data "aws_eks_cluster" "cluster" {
+  name = module.eks.cluster_name
+
+  depends_on = [module.eks]
+}
+
+
+# resource "kubernetes_config_map" "aws_auth" {
+#   metadata {
+#     name      = "aws-auth"
+#     namespace = "kube-system"
+#   }
+
+#   data = {
+#     mapRoles = yamlencode([
+#       {
+#         rolearn  = module.iam.ec2_ssm_role_arn
+#         username = "ec2-user"
+#         groups   = ["system:masters"]
+#       }
+#     ])
+#   }
+
+#   depends_on = [module.eks]
+# }
+
+
+resource "kubernetes_config_map" "aws_auth" {
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = module.iam.ec2_ssm_role_arn
+        username = "ec2-user"
+        groups   = ["system:masters"]
+      },
+      {
+        rolearn  = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/lab-codebuild-role"
+        username = "codebuild-user"
+        groups   = ["system:masters"]
+      }
+    ])
+  }
+
+  depends_on = [module.eks]
+}

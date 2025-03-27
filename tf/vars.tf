@@ -102,3 +102,8 @@ variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
 }
+
+variable "acm_cert_id" {
+  description = "The ACM certificate ID for the ALB"
+  type        = string
+}
