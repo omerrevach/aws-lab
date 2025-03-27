@@ -8,5 +8,5 @@ service:
   port: 80
   targetPort: 5000
 env:
-  S3_BUCKET: "stockpnl-data"
-  AWS_REGION: "eu-north-1"
+  S3_BUCKET: stockpnl-data
+  AWS_REGION: eu-north-1
