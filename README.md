@@ -99,9 +99,7 @@
 
     * DNS records are set up for argocd.stockpnl.com and stockpnl.com.
 
-#
->After applying the Terraform configuration, update the cluster access settings to make the EKS cluster only accessible from the private subnets by setting the EKS endpoint to private = true and public = false in the main.tf and run terraform apply again.
-#
+
 ## Phase 2: CI/CD Pipeline Setup
 
 **In the lab-tf-pipeline branch:**
@@ -233,5 +231,24 @@ pipeline_artifact_bucket = "commit-pipeline-artifact-bucket-omeriko"
 ```
 * pipeline_artifact_bucket: The S3 bucket used to store the pipeline artifacts.
 
+## Deploy Terraform
+1. **Copy the tf code to the linux EC2 machine since its private api endpoint**
+    ```
+    https://github.com/omerrevach/aws-lab.git
+    ```
+
+2. **Apply lab-tf:**
+    ```
+    git checkout lab-tf
+    terraform init
+    terraform apply
+    ```
+
+3. **Apply lab-tf-pipeline:**
+    ```
+    git checkout lab-tf-pipeline
+    terraform init
+    terraform apply
+    ```
 
 ![WebAppPic](web_app.png)
